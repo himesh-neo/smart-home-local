@@ -41,7 +41,7 @@ const argv =
           alias: 'd',
           type: 'string',
           demandOption: true,
-          default: DiscoveryKind.UDP,
+          default: DiscoveryKind.MDNS,
           choices: Object.values(DiscoveryKind),
         })
         .option('control_protocol', {
@@ -49,7 +49,7 @@ const argv =
           alias: 'c',
           type: 'string',
           demandOption: true,
-          default: ControlKind.TCP,
+          default: ControlKind.HTTP,
           choices: Object.values(ControlKind),
         })
         .option('mdns_service_name', {
@@ -60,7 +60,7 @@ const argv =
         .option('mdns_instance_name', {
           describe: 'MDNS instance name.',
           type: 'string',
-          default: 'strand1._sample._tcp.local',
+          default: 'hub1._sample._tcp.local',
         })
         .option('upnp_server_port', {
           describe: 'Port to serve XML UPnP configuration by HTTP server',

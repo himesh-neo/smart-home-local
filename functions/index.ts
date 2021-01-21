@@ -98,6 +98,7 @@ app.onQuery((body, headers) => {
 });
 app.onExecute((body, headers) => {
   functions.logger.log('Cloud Fulfillment received EXECUTE');
+  //functions.logger.log(' body ',body);
   // EXECUTE requests should be handled by local fulfillment
   return {
     requestId: body.requestId,

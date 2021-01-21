@@ -214,3 +214,4 @@ npm run lint --prefix device/
 ## License
 
 See `LICENSE`
+# smart-home-local
