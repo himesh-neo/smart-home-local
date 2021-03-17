@@ -9,6 +9,7 @@
         "@google/local-home-sdk": "^1.4.0",
         "array.prototype.flatmap": "^1.2.3",
         "cbor": "^5.0.2",
+        "encrypt-decrypt-library": "^1.0.4",
         "opc": "^1.1.3",
         "xmldom": "^0.3.0"
     },
@@ -36,7 +37,7 @@
         "build": "npm run build-web && npm run build-node",
         "build-web": "webpack --config webpack.config.web.js",
         "build-node": "webpack --config webpack.config.node.js",
-        "start": "node serve.js",
+        "start": "npm run build && node serve.js",
         "deploy": "firebase deploy --only hosting"
     },
     "ava": {

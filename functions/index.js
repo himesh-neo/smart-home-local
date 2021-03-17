@@ -16,7 +16,14 @@ require("ts-polyfill/lib/es2019-array");
 const actions_on_google_1 = require("actions-on-google");
 const functions = require("firebase-functions");
 const controlKinds = ['TCP', 'UDP', 'HTTP'];
-const config = functions.config();
+const config = {
+    "hub1": {
+        "control_protocol": "HTTP",
+        "channel": "1",
+        "leds": "16"
+    }
+}; //functions.config();
+functions.logger.log(config);
 const devices = Object.entries(config).flatMap(([deviceId, deviceConf]) => {
     const port = parseInt(deviceConf.port || '7890', 10);
     const leds = parseInt(deviceConf.leds || '16', 10);
@@ -37,8 +44,11 @@ const devices = Object.entries(config).flatMap(([deviceId, deviceConf]) => {
 });
 const app = actions_on_google_1.smarthome();
 app.onSync((body, headers) => {
-    functions.logger.log('User account linked from Google Assistant', devices);
-    return {
+    functions.logger.log('test test');
+    functions.logger.log('User account linked from Google Assistant');
+    functions.logger.log('test test');
+    functions.logger.log(JSON.stringify(devices));
+    let data = {
         requestId: body.requestId,
         payload: {
             agentUserId: 'placeholder-user-id',
@@ -71,27 +81,48 @@ app.onSync((body, headers) => {
             })),
         },
     };
+    functions.logger.log(JSON.stringify(data));
+    return data;
 });
+// app.onQuery((body, headers) => {
+//   functions.logger.log('Cloud Fulfillment received QUERY');
+//   // Command-only devices do not support state queries
+//   return {
+//     requestId: body.requestId,
+//     payload: {
+//       devices: devices.reduce((result, device) => {
+//         result[device.id] = {
+//           status: 'ERROR',
+//           errorCode: 'notSupported',
+//           debugString: `${device.id} is command only`,
+//         };
+//         return result;
+//       }, {}),
+//     },
+//   };
+// })
 app.onQuery((body, headers) => {
     functions.logger.log('Cloud Fulfillment received QUERY');
     // Command-only devices do not support state queries
-    return {
+    let data = {
         requestId: body.requestId,
         payload: {
             devices: devices.reduce((result, device) => {
                 result[device.id] = {
-                    status: 'ERROR',
-                    errorCode: 'notSupported',
-                    debugString: `${device.id} is command only`,
+                    on: true,
+                    online: true
                 };
                 return result;
             }, {}),
         },
     };
+    functions.logger.log(data);
+    console.log(data);
+    return data;
 });
 app.onExecute((body, headers) => {
     functions.logger.log('Cloud Fulfillment received EXECUTE');
-    functions.logger.log(' body ', body);
+    //functions.logger.log(' body ',body);
     // EXECUTE requests should be handled by local fulfillment
     return {
         requestId: body.requestId,

@@ -29,6 +29,8 @@ import {ControlKind, DiscoveryKind} from '../common/discovery';
 
 import {IOPCMessage} from './types';
 
+import {decrypt} from './crypto';
+
 const bonjour = require('bonjour');
 const mdnsParser = require('multicast-dns-service-types');
 const opcParser = require('opc/parser');
@@ -288,14 +290,20 @@ function startHttpControl() {
   server.post('/', (req, res) => {
     console.debug(`HTTP: received ${req.method} request.`);
 
-    const buf = Buffer.from(req.body, 'base64');
-    const readable = new Readable();
-    // tslint:disable-next-line: no-empty
-    readable._read = () => {};
-    readable.push(buf);
-    readable.pipe(opcParser()).on('data', handleOpcMessage);
+    console.log('request body -', req.body)
 
-    res.status(200).send('OK');
+    
+
+    console.log('decrypted body -', decrypt(req.body, 'cipher-secret'))
+
+    // const buf = Buffer.from(req.body, 'base64');
+    // const readable = new Readable();
+    // tslint:disable-next-line: no-empty
+    // readable._read = () => {};
+    // readable.push(buf);
+    // readable.pipe(opcParser()).on('data', handleOpcMessage);
+
+    res.status(500).send('OK');
   });
 
   server.listen(argv.opc_port, () => {

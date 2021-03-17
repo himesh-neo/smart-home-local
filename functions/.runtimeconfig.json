@@ -1,0 +1,11 @@
+
+> smarthome-provider-placeholder@0.0.1 firebase /Users/webwerks/projects/votion/smart-home-local/functions
+> firebase "functions:config:get"
+
+{
+  "hub1": {
+    "control_protocol": "HTTP",
+    "channel": "1,2,3",
+    "leds": "16"
+  }
+}

@@ -37,3 +37,5 @@ export interface IStrandInfo {
   channel: number;
   leds: number;
 }
+
+declare module 'simple-aes-256';
