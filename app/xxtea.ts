@@ -14,11 +14,15 @@
 \**********************************************************/
 
 /*jshint node:true, eqeqeq:true */
-'use strict';
+// 'use strict';
 
-var delta = 0x9E3779B9;
+// class test1 {
+//     constructor(parameters) {
 
-function toUint8Array(v, includeLength) {
+//     }
+let delta = 0x9E3779B9;
+
+function toUint8Array(v: any, includeLength: any) {
     var length = v.length;
     var n = length << 2;
     if (includeLength) {
@@ -36,7 +40,7 @@ function toUint8Array(v, includeLength) {
     return bytes;
 }
 
-function toUint32Array(bytes, includeLength) {
+function toUint32Array(bytes: any, includeLength: any) {
     var length = bytes.length;
     var n = length >> 2;
     if ((length & 3) !== 0) {
@@ -55,11 +59,11 @@ function toUint32Array(bytes, includeLength) {
     return v;
 }
 
-function mx(sum, y, z, p, e, k) {
+function mx(sum: number, y: number, z: number, p: number, e: number, k: number[]) {
     return ((z >>> 5 ^ y << 2) + (y >>> 3 ^ z << 4)) ^ ((sum ^ y) + (k[p & 3 ^ e] ^ z));
 }
 
-function fixk(k) {
+function fixk(k: any | ArrayLike<number>) {
     if (k.length < 16) {
         var key = new Uint8Array(16);
         key.set(k);
@@ -68,7 +72,7 @@ function fixk(k) {
     return k;
 }
 
-function encryptUint32Array(v, k) {
+function encryptUint32Array(v: any, k: any) {
     var length = v.length;
     var n = length - 1;
     var y, z, sum, e, p, q;
@@ -87,7 +91,7 @@ function encryptUint32Array(v, k) {
     return v;
 }
 
-function decryptUint32Array(v, k) {
+function decryptUint32Array(v: any, k: any) {
     var length = v.length;
     var n = length - 1;
     var y, z, sum, e, p, q;
@@ -105,7 +109,7 @@ function decryptUint32Array(v, k) {
     return v;
 }
 
-function toBytes(str) {
+function toBytes(str: string) {
     var n = str.length;
     // A single code unit uses at most 3 bytes.
     // Two code units at most 4.
@@ -141,8 +145,8 @@ function toBytes(str) {
     return bytes.subarray(0, length);
 }
 
-function toShortString(bytes, n) {
-    var charCodes = new Uint16Array(n);
+function toShortString(bytes: any, n: any) {
+    var charCodes: any = new Uint16Array(n);
     var i = 0,
         off = 0;
     for (var len = bytes.length; i < n && off < len; i++) {
@@ -202,9 +206,9 @@ function toShortString(bytes, n) {
     return String.fromCharCode.apply(String, charCodes);
 }
 
-function toLongString(bytes, n) {
+function toLongString(bytes: any, n: any) {
     var buf = [];
-    var charCodes = new Uint16Array(0x8000);
+    var charCodes:any = new Uint16Array(0x8000);
     var i = 0,
         off = 0;
     for (var len = bytes.length; i < n && off < len; i++) {
@@ -270,7 +274,7 @@ function toLongString(bytes, n) {
     return buf.join('');
 }
 
-function toString(bytes) {
+function toString(bytes:any) {
     var n = bytes.length;
     if (n === 0) return '';
     return ((n < 0x7FFF) ?
@@ -278,7 +282,7 @@ function toString(bytes) {
         toLongString(bytes, n));
 }
 
-function encrypt(data, key) {
+function encrypt(data: any, key: any) {
     if (typeof data === 'string') data = toBytes(data);
     if (typeof key === 'string') key = toBytes(key);
     if (data === undefined || data === null || data.length === 0) {
@@ -287,11 +291,11 @@ function encrypt(data, key) {
     return toUint8Array(encryptUint32Array(toUint32Array(data, true), toUint32Array(fixk(key), false)), false);
 }
 
-function encryptToString(data, key) {
+function encryptToString(data: any, key: any) {
     return new Buffer(encrypt(data, key)).toString('base64');
 }
 
-function decrypt(data, key) {
+function decrypt(data: any, key: any) {
     if (typeof data === 'string') data = new Buffer(data, 'base64');
     if (typeof key === 'string') key = toBytes(key);
     if (data === undefined || data === null || data.length === 0) {
@@ -300,15 +304,21 @@ function decrypt(data, key) {
     return toUint8Array(decryptUint32Array(toUint32Array(data, false), toUint32Array(fixk(key), false)), true);
 }
 
-function decryptToString(data, key) {
-    return toString(decrypt(data, key));
+function decryptToString(data: any, key: any) {
+    const output = decrypt(data, key)
+    return output.toString();
 }
+// }
 
-module.exports = Object.create(null, {
-    toBytes: { value: toBytes },
-    toString: { value: toString },
-    encrypt: { value: encrypt },
-    encryptToString: { value: encryptToString },
-    decrypt: { value: decrypt },
-    decryptToString: { value: decryptToString }
-});
+let object =
+    Object.create(null, {
+        toBytes: { value: toBytes },
+        toString: { value: toString },
+        encrypt: { value: encrypt },
+        encryptToString: { value: encryptToString },
+        decrypt: { value: decrypt },
+        decryptToString: { value: decryptToString }
+    });
+export {
+    object
+}

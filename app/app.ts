@@ -15,7 +15,7 @@
 
 import {ControlKind} from '../common/discovery';
 import {IColorAbsolute, ICustomData, IDiscoveryData} from './types';
-import { xxtea } from './xxtea';
+import * as xxtea from './xxtea';
 
 import { CRC8 } from './crc8';
 /* tslint:disable:no-var-requires */
@@ -79,7 +79,7 @@ function makeHttpPost(data: Uint8Array, secret: string, path?: string) {
   console.log('http encryption secret', secret)
   const command = new smarthome.DataFlow.HttpRequestData();
   command.method = smarthome.Constants.HttpOperation.POST;
-  let encryptedData = xxtea.encrypt(data, secret);
+  let encryptedData = xxtea.object.encrypt(data, secret);
   let hexCmdString = toHexString(encryptedData)
   command.data = hexCmdString
   console.log('encrypted hex command - ', command.data);
@@ -132,7 +132,7 @@ function generateCommandArr(deviceType: string, desiredState: string) {
 }
 
 function generateChecksum(data: Uint8Array){
-  let crc8 = new CRC8(CRC8.POLY.CRC8_DALLAS_MAXIM, 0xff)// new crc8(crc8.POLY.CRC8_DALLAS_MAXIM, 0xff)
+  let crc8 =  CRC8(CRC8.POLY.CRC8_DALLAS_MAXIM, 0xff)// new crc8(crc8.POLY.CRC8_DALLAS_MAXIM, 0xff)
   let cksum = crc8.checksum(data);
   return cksum
 }
