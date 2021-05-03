@@ -30,6 +30,7 @@ export interface ICustomData {
   leds: number;
   port: number;
   proxy: string;
+  secret: string
   control_protocol: ControlKind;
 }
 

@@ -15,21 +15,20 @@
 
 import {ControlKind} from '../common/discovery';
 import {IColorAbsolute, ICustomData, IDiscoveryData} from './types';
-import {decrypt, encrypt} from './crypto';
+import { xxtea } from './xxtea';
 
-import {DOMParser} from 'xmldom';
-import cbor from 'cbor';
-
+import { CRC8 } from './crc8';
 /* tslint:disable:no-var-requires */
 // TODO(proppy): add typings
 require('array.prototype.flatmap/auto');
 const opcStream = require('opc');
 /* tslint:enable:no-var-requires */
 
-function makeSendCommand(protocol: ControlKind, data: string, path?: string) {
+function makeSendCommand(protocol: ControlKind, data: Uint8Array, secret: string, path?: string) {
+  console.log('protocol -', protocol)
   switch (protocol) {
     case ControlKind.HTTP:
-      return makeHttpPost(data, path);
+      return makeHttpPost(data, secret, path);
     default:
       throw Error(`Unsupported protocol for send: ${protocol}`);
   }
@@ -75,20 +74,75 @@ function makeHttpGet(path?: string) {
   return command;
 }
 
-function makeHttpPost(data: string, path?: string) {
+function makeHttpPost(data: Uint8Array, secret: string, path?: string) {
+  console.log('http post making')
+  console.log('http encryption secret', secret)
   const command = new smarthome.DataFlow.HttpRequestData();
   command.method = smarthome.Constants.HttpOperation.POST;
-  command.data = encrypt(data, 'cipher-secret');
-  console.log('encrypted -', command.data);
-  let decypted = decrypt(command.data, 'cipher-secret');
-  console.log('decrypted -', decypted);
-  let decryptedHack = decrypt(command.data, 'hello world');
-  console.log('decrypted with invalid key -', decryptedHack);
+  let encryptedData = xxtea.encrypt(data, secret);
+  let hexCmdString = toHexString(encryptedData)
+  command.data = hexCmdString
+  console.log('encrypted hex command - ', command.data);
   command.dataType = 'application/octet-stream';
   if (path !== undefined) {
     command.path = path;
   }
   return command;
+}
+
+function generateCommandBody(deviceType: string, command: string): Uint8Array{
+  let commandData = generateCommandArr(deviceType, command);
+  console.log(commandData)
+  return commandData;
+}
+
+// hex:  00 00 56 74 70 00 00 00 00 01 00 00   (sequence no. 00 00, magic number 5674, command 70 00 00 00 , data len 00 00, param: 00, This is VUL100 switch off CRC XX) (edited) 
+// hex: 00 01 56 74 70 00 00 00 00 01 01 00 (sequence no. 00 01, magic number 5674, command 70 00 00 00 , data len 00 00 param: 01, This is VUL100 switch On, CRC  XX)
+
+function generateCommand(deviceType: string, desiredState: string): Buffer{
+  let seqNo = '0000';
+  let magicNo = '5674';
+  let command = '70000000';
+  let dataLen = '0000';
+  let param = '01'
+  let final = '24'
+  return Buffer.from( (seqNo + magicNo + command + dataLen + param + final), 'hex' );
+}
+
+function generateCommandArr(deviceType: string, desiredState: string) {
+  let command_buf = new Uint8Array(11);
+  // seq no
+  command_buf[0] = 0x00;
+  command_buf[1] = 0x00;
+  // magicNo
+  command_buf[2] = 0x56;
+  command_buf[3] = 0x74;
+  // command
+  command_buf[4] = 0x70;
+  command_buf[5] = 0x00;
+  command_buf[6] = 0x00;
+  command_buf[7] = 0x00;
+  // data length
+  command_buf[8] = 0x00;
+  command_buf[9] = 0x01;
+  // param
+  command_buf[10] = (desiredState == 'on') ? 0x01 : 0x00 ;
+  let cksum = generateChecksum(command_buf)
+  return new Uint8Array([...command_buf, cksum])
+}
+
+function generateChecksum(data: Uint8Array){
+  let crc8 = new CRC8(CRC8.POLY.CRC8_DALLAS_MAXIM, 0xff)// new crc8(crc8.POLY.CRC8_DALLAS_MAXIM, 0xff)
+  let cksum = crc8.checksum(data);
+  return cksum
+}
+
+function toHexString(data: Uint8Array) {
+  var s = '0x';
+  data.forEach(function(byte) {
+      s += ('0' + (byte & 0xFF).toString(16)).slice(-2);
+  });
+  return s;
 }
 
 // HomeApp implements IDENTIFY and EXECUTE handler for smarthome local device
@@ -174,7 +228,6 @@ export class HomeApp {
         // TODO(proppy): handle multiple executions.
         const execution = command.execution[0];
         const params: Object = execution.params as Object;
-
         const executeResponse =
             new smarthome.Execute.Response.Builder().setRequestId(
                 executeRequest.requestId);
@@ -182,9 +235,12 @@ export class HomeApp {
         await Promise.all(command.devices.map(async (device) => {
           const customData = device.customData as ICustomData;
           // Create OPC set-pixel 8-bit message from ColorAbsolute command
-          let data: string = 'Hello from local'
+          let data: Uint8Array = generateCommandBody('deviceType', 'on')
+          console.log('building data')
+          let secret = '5674567400'
           const deviceCommand =
-              makeSendCommand(customData.control_protocol, data);
+              makeSendCommand(customData.control_protocol, data, secret, '/uricommand');
+          console.log('device-command')
           deviceCommand.requestId = executeRequest.requestId;
           deviceCommand.deviceId = device.id;
           deviceCommand.port = customData.port;
@@ -221,9 +277,7 @@ export class HomeApp {
         model: scanData.txt.model,
         hw_rev: scanData.txt.hw_rev,
         fw_rev: scanData.txt.fw_rev,
-        channels: scanData.txt.channels
-          .split(',')
-          .map((channel) => parseInt(channel, 10)),
+        channels: []
       };
 
     } 
