@@ -36,7 +36,7 @@ const mdnsParser = require('multicast-dns-service-types');
 const opcParser = require('opc/parser');
 const opcStrand = require('opc/strand');
 
-const argv =
+let argv =
     yargs.usage('Usage: $0  --device_id ID [protocol settings]')
         .option('discovery_protocol', {
           describe: 'Discovery Protocol',
@@ -57,12 +57,12 @@ const argv =
         .option('mdns_service_name', {
           describe: 'MDNS service name',
           type: 'string',
-          default: '_sample._tcp.local',
+          default: '_http._tcp.local',
         })
         .option('mdns_instance_name', {
           describe: 'MDNS instance name.',
           type: 'string',
-          default: 'hub1._sample._tcp.local',
+          default: 'hub1._http._tcp.local',
         })
         .option('upnp_server_port', {
           describe: 'Port to serve XML UPnP configuration by HTTP server',
@@ -129,8 +129,8 @@ const argv =
 
 function makeDiscoveryData() {
   const discoveryData = {
-    id: argv.device_id,
-    model: argv.device_model,
+    id: '007J6VW74MDOZ',
+    model: 'test-2',
     hw_rev: argv.hardware_revision,
     fw_rev: argv.firmware_revision,
     channels: argv.channel,
@@ -170,15 +170,29 @@ function startUdpDiscovery() {
 
 function startMdnsDiscovery() {
   // Validate and parse the input string
+  // argv.mdns_instance_name = '_http._tcp.local'
+  console.log(argv.mdns_service_name)
   const serviceParts = mdnsParser.parse(argv.mdns_service_name);
+  // const serviceParts = mdnsParser.parse('_http._tcp.local');
+  
+  console.log(serviceParts)
   // Publish the DNS-SD service
   const mdnsServer = bonjour();
+  // mdnsServer.publish({
+  //   name: argv.device_id,
+  //   type: serviceParts.name,
+  //   protocol: serviceParts.protocol,
+  //   port: 5353,
+  //   txt: makeDiscoveryData(),
+  // });
+  let disData = makeDiscoveryData();
+  console.log(disData)
   mdnsServer.publish({
-    name: argv.device_id,
+    name: '007J6VW74MDOZ',
     type: serviceParts.name,
     protocol: serviceParts.protocol,
     port: 5353,
-    txt: makeDiscoveryData(),
+    txt: disData
   });
   // Log query events from internal mDNS server
   mdnsServer._server.mdns.on('query', (query: any) => {
@@ -287,14 +301,14 @@ function startHttpControl() {
   server.use(express.text({
     type: 'application/octet-stream',
   }));
-  server.post('/', (req, res) => {
+  server.post('/uricommand', (req, res) => {
     console.debug(`HTTP: received ${req.method} request.`);
 
     console.log('request body -', req.body)
 
     
 
-    console.log('decrypted body -', decrypt(req.body, 'cipher-secret'))
+    //  body -', decrypt(req.body, 'cipher-secret'))
 
     // const buf = Buffer.from(req.body, 'base64');
     // const readable = new Readable();
@@ -303,10 +317,10 @@ function startHttpControl() {
     // readable.push(buf);
     // readable.pipe(opcParser()).on('data', handleOpcMessage);
 
-    res.status(500).send('OK');
+    res.status(200).send('OK');
   });
 
-  server.listen(argv.opc_port, () => {
+  server.listen(80, () => {
     console.log(`HTTP control listening on port ${argv.opc_port}`);
   });
 }

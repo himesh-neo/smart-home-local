@@ -19,7 +19,7 @@ import * as functions from 'firebase-functions';
 const controlKinds = ['TCP', 'UDP', 'HTTP'];
 
 const config = {
-  "hub1": {
+  "007J6VW74MDOZ": {
     "control_protocol": "HTTP",
     "channel": "1",
     "leds": "16"
@@ -55,6 +55,7 @@ app.onSync((body, headers) => {
   functions.logger.log('User account linked from Google Assistant');
   functions.logger.log('test test');
   functions.logger.log(JSON.stringify(devices));
+  let reportState = true;
   let data = {
     requestId: body.requestId,
     payload: {
@@ -70,10 +71,10 @@ app.onSync((body, headers) => {
                              }],
                              name: {
                                name: device.name,
-                               defaultNames: [],
-                               nicknames: [],
+                               defaultNames: [device.name],
+                               nicknames: [device.name],
                              },
-                             willReportState: false,
+                             willReportState: reportState,
                              attributes: {
                                colorModel: 'rgb',
                                commandOnlyColorSetting: true,
@@ -81,9 +82,11 @@ app.onSync((body, headers) => {
                              customData: {
                                channel: device.channel,
                                leds: device.leds,
-                               port: device.port,
+                               port: 80,
                                proxy: device.proxy,
                                control_protocol: device.control_protocol,
+                               reportState: reportState,
+                               secret: 'test-secret'
                              },
                            })),
     },

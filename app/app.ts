@@ -17,7 +17,7 @@ import {ControlKind} from '../common/discovery';
 import {IColorAbsolute, ICustomData, IDiscoveryData} from './types';
 import * as xxtea from './xxtea';
 
-import { CRC8 } from './crc8';
+import { CRC8, CrcPoly } from './crc8';
 /* tslint:disable:no-var-requires */
 // TODO(proppy): add typings
 require('array.prototype.flatmap/auto');
@@ -75,11 +75,11 @@ function makeHttpGet(path?: string) {
 }
 
 function makeHttpPost(data: Uint8Array, secret: string, path?: string) {
-  console.log('http post making')
   console.log('http encryption secret', secret)
   const command = new smarthome.DataFlow.HttpRequestData();
   command.method = smarthome.Constants.HttpOperation.POST;
   let encryptedData = xxtea.object.encrypt(data, secret);
+  console.log('encrypted data - ', encryptedData)
   let hexCmdString = toHexString(encryptedData)
   command.data = hexCmdString
   console.log('encrypted hex command - ', command.data);
@@ -90,16 +90,15 @@ function makeHttpPost(data: Uint8Array, secret: string, path?: string) {
   return command;
 }
 
-function generateCommandBody(deviceType: string, command: string): Uint8Array{
+function generateCommandBody(deviceType: string, command: boolean): Uint8Array{
   let commandData = generateCommandArr(deviceType, command);
-  console.log(commandData)
   return commandData;
 }
 
 // hex:  00 00 56 74 70 00 00 00 00 01 00 00   (sequence no. 00 00, magic number 5674, command 70 00 00 00 , data len 00 00, param: 00, This is VUL100 switch off CRC XX) (edited) 
 // hex: 00 01 56 74 70 00 00 00 00 01 01 00 (sequence no. 00 01, magic number 5674, command 70 00 00 00 , data len 00 00 param: 01, This is VUL100 switch On, CRC  XX)
 
-function generateCommand(deviceType: string, desiredState: string): Buffer{
+function generateCommand(deviceType: string, desiredState: boolean): Buffer{
   let seqNo = '0000';
   let magicNo = '5674';
   let command = '70000000';
@@ -109,7 +108,7 @@ function generateCommand(deviceType: string, desiredState: string): Buffer{
   return Buffer.from( (seqNo + magicNo + command + dataLen + param + final), 'hex' );
 }
 
-function generateCommandArr(deviceType: string, desiredState: string) {
+function generateCommandArr(deviceType: string, desiredState: boolean) {
   let command_buf = new Uint8Array(11);
   // seq no
   command_buf[0] = 0x00;
@@ -126,19 +125,22 @@ function generateCommandArr(deviceType: string, desiredState: string) {
   command_buf[8] = 0x00;
   command_buf[9] = 0x01;
   // param
-  command_buf[10] = (desiredState == 'on') ? 0x01 : 0x00 ;
+  console.log('desiredState - On: ', desiredState);
+  command_buf[10] = (desiredState) ? 0x01 : 0x00 ;
   let cksum = generateChecksum(command_buf)
-  return new Uint8Array([...command_buf, cksum])
+  let cmd = new Uint8Array([...command_buf, cksum])
+  console.log('unint array with cksum - ', cmd) 
+  return cmd
 }
 
 function generateChecksum(data: Uint8Array){
-  let crc8 =  CRC8(CRC8.POLY.CRC8_DALLAS_MAXIM, 0xff)// new crc8(crc8.POLY.CRC8_DALLAS_MAXIM, 0xff)
+  let crc8 =  new CRC8(CrcPoly.CRC8_DALLAS_MAXIM, 0xff) // new crc8(crc8.POLY.CRC8_DALLAS_MAXIM, 0xff)
   let cksum = crc8.checksum(data);
   return cksum
 }
 
 function toHexString(data: Uint8Array) {
-  var s = '0x';
+  var s = '' // '0x';
   data.forEach(function(byte) {
       s += ('0' + (byte & 0xFF).toString(16)).slice(-2);
   });
@@ -235,12 +237,11 @@ export class HomeApp {
         await Promise.all(command.devices.map(async (device) => {
           const customData = device.customData as ICustomData;
           // Create OPC set-pixel 8-bit message from ColorAbsolute command
-          let data: Uint8Array = generateCommandBody('deviceType', 'on')
-          console.log('building data')
+          let params = execution.params as any
+          let data: Uint8Array = generateCommandBody('deviceType', params['on'])
           let secret = '5674567400'
           const deviceCommand =
               makeSendCommand(customData.control_protocol, data, secret, '/uricommand');
-          console.log('device-command')
           deviceCommand.requestId = executeRequest.requestId;
           deviceCommand.deviceId = device.id;
           deviceCommand.port = customData.port;

@@ -283,6 +283,8 @@ function toString(bytes:any) {
 }
 
 function encrypt(data: any, key: any) {
+    console.log('encryption input -', data)
+    console.log('encryption input key -', key)
     if (typeof data === 'string') data = toBytes(data);
     if (typeof key === 'string') key = toBytes(key);
     if (data === undefined || data === null || data.length === 0) {
