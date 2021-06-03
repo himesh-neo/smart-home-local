@@ -15,9 +15,9 @@
 
 import {ControlKind} from '../common/discovery';
 import {IColorAbsolute, ICustomData, IDiscoveryData} from './types';
-import * as xxtea from './xxtea';
-
-import { CRC8, CrcPoly } from './crc8';
+//import * as xxtea from './xxtea';
+const GenerateCommandString = require('generateDeviceCommand').GenerateCommandString;
+//import { CRC8, CrcPoly } from './crc8';
 /* tslint:disable:no-var-requires */
 // TODO(proppy): add typings
 require('array.prototype.flatmap/auto');
@@ -74,14 +74,14 @@ function makeHttpGet(path?: string) {
   return command;
 }
 
-function makeHttpPost(data: Uint8Array, secret: string, path?: string) {
+function makeHttpPost(data: any, secret: string, path?: string) {
   console.log('http encryption secret', secret)
   const command = new smarthome.DataFlow.HttpRequestData();
   command.method = smarthome.Constants.HttpOperation.POST;
-  let encryptedData = xxtea.object.encrypt(data, secret);
-  console.log('encrypted data - ', encryptedData)
-  let hexCmdString = toHexString(encryptedData)
-  command.data = hexCmdString
+  //let encryptedData = xxtea.object.encrypt(data, secret);
+  //console.log('encrypted data - ', encryptedData)
+  // hexCmdString = toHexString(encryptedData)
+  command.data = data
   console.log('encrypted hex command - ', command.data);
   command.dataType = 'application/octet-stream';
   if (path !== undefined) {
@@ -90,10 +90,10 @@ function makeHttpPost(data: Uint8Array, secret: string, path?: string) {
   return command;
 }
 
-function generateCommandBody(deviceType: string, command: boolean): Uint8Array{
-  let commandData = generateCommandArr(deviceType, command);
-  return commandData;
-}
+// function generateCommandBody(deviceType: string, command: boolean): Uint8Array{
+//   let commandData = generateCommandArr(deviceType, command);
+//   return commandData;
+// }
 
 // hex:  00 00 56 74 70 00 00 00 00 01 00 00   (sequence no. 00 00, magic number 5674, command 70 00 00 00 , data len 00 00, param: 00, This is VUL100 switch off CRC XX) (edited) 
 // hex: 00 01 56 74 70 00 00 00 00 01 01 00 (sequence no. 00 01, magic number 5674, command 70 00 00 00 , data len 00 00 param: 01, This is VUL100 switch On, CRC  XX)
@@ -108,44 +108,44 @@ function generateCommand(deviceType: string, desiredState: boolean): Buffer{
   return Buffer.from( (seqNo + magicNo + command + dataLen + param + final), 'hex' );
 }
 
-function generateCommandArr(deviceType: string, desiredState: boolean) {
-  let command_buf = new Uint8Array(11);
-  // seq no
-  command_buf[0] = 0x00;
-  command_buf[1] = 0x00;
-  // magicNo
-  command_buf[2] = 0x56;
-  command_buf[3] = 0x74;
-  // command
-  command_buf[4] = 0x70;
-  command_buf[5] = 0x00;
-  command_buf[6] = 0x00;
-  command_buf[7] = 0x00;
-  // data length
-  command_buf[8] = 0x00;
-  command_buf[9] = 0x01;
-  // param
-  console.log('desiredState - On: ', desiredState);
-  command_buf[10] = (desiredState) ? 0x01 : 0x00 ;
-  let cksum = generateChecksum(command_buf)
-  let cmd = new Uint8Array([...command_buf, cksum])
-  console.log('unint array with cksum - ', cmd) 
-  return cmd
-}
+// function generateCommandArr(deviceType: string, desiredState: boolean) {
+//   let command_buf = new Uint8Array(11);
+//   // seq no
+//   command_buf[0] = 0x00;
+//   command_buf[1] = 0x00;
+//   // magicNo
+//   command_buf[2] = 0x56;
+//   command_buf[3] = 0x74;
+//   // command
+//   command_buf[4] = 0x70;
+//   command_buf[5] = 0x00;
+//   command_buf[6] = 0x00;
+//   command_buf[7] = 0x00;
+//   // data length
+//   command_buf[8] = 0x00;
+//   command_buf[9] = 0x01;
+//   // param
+//   console.log('desiredState - On: ', desiredState);
+//   command_buf[10] = (desiredState) ? 0x01 : 0x00 ;
+//   let cksum = generateChecksum(command_buf)
+//   let cmd = new Uint8Array([...command_buf, cksum])
+//   console.log('unint array with cksum - ', cmd) 
+//   return cmd
+// }
 
-function generateChecksum(data: Uint8Array){
-  let crc8 =  new CRC8(CrcPoly.CRC8_DALLAS_MAXIM, 0xff) // new crc8(crc8.POLY.CRC8_DALLAS_MAXIM, 0xff)
-  let cksum = crc8.checksum(data);
-  return cksum
-}
+// function generateChecksum(data: Uint8Array){
+//   let crc8 =  new CRC8(CrcPoly.CRC8_DALLAS_MAXIM, 0xff) // new crc8(crc8.POLY.CRC8_DALLAS_MAXIM, 0xff)
+//   let cksum = crc8.checksum(data);
+//   return cksum
+// }
 
-function toHexString(data: Uint8Array) {
-  var s = '' // '0x';
-  data.forEach(function(byte) {
-      s += ('0' + (byte & 0xFF).toString(16)).slice(-2);
-  });
-  return s;
-}
+// function toHexString(data: Uint8Array) {
+//   var s = '' // '0x';
+//   data.forEach(function(byte) {
+//       s += ('0' + (byte & 0xFF).toString(16)).slice(-2);
+//   });
+//   return s;
+// }
 
 // HomeApp implements IDENTIFY and EXECUTE handler for smarthome local device
 // execution.
@@ -235,10 +235,22 @@ export class HomeApp {
                 executeRequest.requestId);
         // Handle light device commands for all devices.
         await Promise.all(command.devices.map(async (device) => {
-          const customData = device.customData as ICustomData;
+          const customData: any = device.customData as ICustomData;
           // Create OPC set-pixel 8-bit message from ColorAbsolute command
           let params = execution.params as any
-          let data: Uint8Array = generateCommandBody('deviceType', params['on'])
+          let deviceType = customData.type;
+          let commandValue;
+          if (execution.command == 'action.devices.commands.OnOff' || execution.command == 'action.devices.commands.BrightnessAbsolute') {
+            commandValue = Object.values(params)[0];
+          } else if(execution.command == 'action.devices.commands.ColorLoop') {
+            commandValue = 60 
+          } else if(execution.command == 'action.devices.commands.ColorAbsolute') {
+            commandValue = params.color.spectrumHsv;
+          }
+          const generateCommandString = new GenerateCommandString(deviceType, execution.command, commandValue);
+          const data: any = generateCommandString.generateCommandBody()
+
+          //let data: Uint8Array = generateCommandBody('deviceType', params['on'])
           let secret = '5674567400'
           const deviceCommand =
               makeSendCommand(customData.control_protocol, data, secret, '/uricommand');

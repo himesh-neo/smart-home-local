@@ -297,6 +297,7 @@ function startTcpControl() {
 }
 
 function startHttpControl() {
+  
   const server = express();
   server.use(express.text({
     type: 'application/octet-stream',
@@ -321,7 +322,7 @@ function startHttpControl() {
   });
 
   server.listen(80, () => {
-    console.log(`HTTP control listening on port ${argv.opc_port}`);
+    console.log(`HTTP control listening on port 80`);
   });
 }
 

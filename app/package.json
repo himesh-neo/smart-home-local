@@ -12,7 +12,8 @@
         "encrypt-decrypt-library": "^1.0.4",
         "node-crc": "^1.3.0",
         "opc": "^1.1.3",
-        "xmldom": "^0.3.0"
+        "xmldom": "^0.3.0",
+        "generateDeviceCommand": "git+https://github.com/himesh-wwindia/generateDeviceCommand.git"
     },
     "devDependencies": {
         "@types/cbor": "^5.0.0",
